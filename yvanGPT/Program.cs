@@ -3,8 +3,20 @@ using OpenAI.Chat;
 using yvanGpt.Components;
 using yvanGpt.Services;
 using Microsoft.Extensions.AI;
+using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure file upload limits (20 MB)
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 20 * 1024 * 1024; // 20 MB
+});
+
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxRequestBodySize = 20 * 1024 * 1024; // 20 MB
+});
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
