@@ -1,0 +1,31 @@
+﻿@page "/aichat"
+
+<PageTitle>AI Chat</PageTitle>
+
+<h1>AI Chat</h1>
+
+@*  Demo AI services are rate limited and intended for demonstration purposes only.
+    DevExpress does not offer a REST API and does not ship any built-in LLMs/SLMs.
+    Use of demo credentials in production is strictly prohibited.
+    Specify the Azure OpenAI endpoint, key, and deployment name in the 'appsettings.json' file. *@
+<DxAIChat AllowResizeInput="true"
+          FileUploadEnabled="true"
+          Initialized="ChatInitialized"
+          UseStreaming="true"
+          CssClass="h-100 overflow-hidden">
+    <AIChatSettings>
+        <DxAIChatFileUploadSettings MaxFileCount="2"
+                                    MaxFileSize="20000"
+                                    AllowedFileExtensions="@(new List<string> { ".jpg", ".pdf" })"
+                                    FileTypeFilter="@(new List<string> { "image/*", "application/pdf"})" />
+    </AIChatSettings>
+</DxAIChat>
+
+@code {
+    void ChatInitialized(IAIChat chat) {
+        chat.LoadMessages([
+            new BlazorChatMessage(Microsoft.Extensions.AI.ChatRole.User, "Hello, AI!"),
+            new BlazorChatMessage(Microsoft.Extensions.AI.ChatRole.Assistant, "Hey there, human! What's on your mind? 😊")
+        ]);
+    }
+}

@@ -1,0 +1,33 @@
+﻿@inject NavigationManager NavigationManager
+@implements IDisposable
+
+<div>
+    <DxMenu Orientation="@Orientation.Vertical" CssClass="menu">
+        <Items>
+            <DxMenuItem NavigateUrl="/" Text="Home" CssClass="@MenuItemCssClass("/")" IconCssClass="icon icon-home"></DxMenuItem>
+            <DxMenuItem NavigateUrl="/aichat" Text="AI Chat" CssClass="@MenuItemCssClass("/aichat")" IconCssClass="icon icon-ai-chat"></DxMenuItem>
+        </Items>
+    </DxMenu>
+</div>
+
+@code {
+    private string? currentLocalPath;
+
+    protected override void OnInitialized() {
+        currentLocalPath = new Uri(NavigationManager.Uri).LocalPath;
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) {
+        currentLocalPath = new Uri(NavigationManager.Uri).LocalPath;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string? MenuItemCssClass(string itemPath) {
+        return string.Equals(currentLocalPath, itemPath, StringComparison.OrdinalIgnoreCase) ? "menu-item-active" : null;
+    }
+
+    public void Dispose() {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+}
