@@ -22,6 +22,12 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// Configure SignalR for Blazor Server (file upload support)
+builder.Services.AddSignalR(options =>
+{
+    options.MaximumReceiveMessageSize = 20 * 1024 * 1024; // 20 MB
+});
+
 builder.Services.AddDevExpressBlazor(options =>
 {
     options.SizeMode = DevExpress.Blazor.SizeMode.Medium;
