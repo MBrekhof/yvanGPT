@@ -1,10 +1,10 @@
 # yvanGPT
 
-A .NET 8 Blazor Server application showcasing DevExpress Blazor UI components integrated with Azure OpenAI for AI-powered features.
+A .NET 8 Blazor Server application showcasing DevExpress Blazor UI components integrated with OpenAI for AI-powered features.
 
 ## Features
 
-- **AI Chat Interface**: Interactive chat powered by Azure OpenAI with file upload support (JPG, PDF)
+- **AI Chat Interface**: Interactive chat powered by OpenAI with file upload support (JPG, PDF)
 - **DevExpress UI Components**: Modern, responsive UI built with DevExpress Blazor v25.2
 - **Real-time Interaction**: Server-side rendering with interactive components
 - **Smart Navigation**: Persistent drawer state management through URL parameters
@@ -13,7 +13,7 @@ A .NET 8 Blazor Server application showcasing DevExpress Blazor UI components in
 ## Prerequisites
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- Azure OpenAI account (or use demo credentials with rate limits)
+- OpenAI API key (get one at https://platform.openai.com/api-keys)
 - Visual Studio 2022 or VS Code (recommended)
 
 ## Getting Started
@@ -25,28 +25,27 @@ git clone https://github.com/MBrekhof/yvanGPT.git
 cd yvanGPT
 ```
 
-### 2. Configure Azure OpenAI
+### 2. Configure OpenAI
 
-Edit `yvanGPT/appsettings.json` and add your Azure OpenAI credentials:
+Edit `yvanGPT/appsettings.json` and add your OpenAI API key:
 
 ```json
-"AzureOpenAISettings": {
-  "Endpoint": "https://your-endpoint.openai.azure.com",
-  "Key": "your-api-key",
-  "DeploymentName": "your-deployment-name"
+"OpenAISettings": {
+  "ApiKey": "your-openai-api-key-here",
+  "Model": "gpt-4o"
 }
 ```
 
-**Note**: The default configuration includes DevExpress demo credentials (rate-limited). For production use, provide your own Azure OpenAI credentials.
+**Note**: Get your API key from https://platform.openai.com/api-keys
 
 ### 3. Build and Run
 
 ```bash
 # Build the project
-dotnet build DXApplication1/DXApplication1.csproj
+dotnet build yvanGPT/yvanGpt.csproj
 
 # Run the application
-dotnet run --project DXApplication1/DXApplication1.csproj
+dotnet run --project yvanGPT/yvanGpt.csproj
 ```
 
 The application will be available at:
@@ -71,7 +70,7 @@ yvanGPT/
 - **.NET 8**: Latest .NET framework
 - **Blazor Server**: Interactive server-side rendering
 - **DevExpress Blazor v25.2**: Professional UI component library
-- **Azure OpenAI**: GPT-powered AI integration
+- **OpenAI**: GPT-powered AI integration
 - **Microsoft.Extensions.AI**: AI abstraction layer
 
 ## DevExpress Components
@@ -90,6 +89,7 @@ This project demonstrates several DevExpress Blazor components:
 - **Dependency Injection**: Configured in `Program.cs` with scoped `IChatClient`
 - **Drawer State Management**: Custom base classes preserve sidebar state in URL
 - **DevExpress AI Integration**: Seamless integration via `AddDevExpressAI()`
+- **OpenAI Integration**: Using official OpenAI .NET SDK with Microsoft.Extensions.AI
 
 ### Adding New Pages
 

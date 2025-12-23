@@ -1,5 +1,5 @@
-﻿using Azure;
-using Azure.AI.OpenAI;
+﻿using OpenAI;
+using OpenAI.Chat;
 using yvanGpt.Components;
 using yvanGpt.Services;
 using Microsoft.Extensions.AI;
@@ -16,17 +16,12 @@ builder.Services.AddDevExpressBlazor(options =>
 });
 builder.Services.AddMvc();
 
-var openAiServiceSettings = builder.Configuration.GetSection("AzureOpenAISettings").Get<AzureOpenAIServiceSettings>();
-if (openAiServiceSettings == null ||
-    string.IsNullOrEmpty(openAiServiceSettings.Endpoint) ||
-    string.IsNullOrEmpty(openAiServiceSettings.Key) ||
-    string.IsNullOrEmpty(openAiServiceSettings.DeploymentName))
-    throw new InvalidOperationException("Specify the Azure OpenAI endpoint, key, and deployment name in the 'appsettings.json' file.");
-var chatClient = new AzureOpenAIClient(
-     new Uri(openAiServiceSettings.Endpoint),
-     new AzureKeyCredential(openAiServiceSettings.Key))
-    .GetChatClient(openAiServiceSettings.DeploymentName)
-    .AsIChatClient();
+var openAiServiceSettings = builder.Configuration.GetSection("OpenAISettings").Get<OpenAIServiceSettings>();
+if (openAiServiceSettings == null || string.IsNullOrEmpty(openAiServiceSettings.ApiKey))
+    throw new InvalidOperationException("Specify the OpenAI API key in the 'appsettings.json' file.");
+
+var openAiClient = new OpenAIClient(openAiServiceSettings.ApiKey);
+var chatClient = openAiClient.GetChatClient(openAiServiceSettings.Model).AsIChatClient();
 
 builder.Services.AddScoped<IChatClient>((provider) => chatClient);
 builder.Services.AddDevExpressAI();

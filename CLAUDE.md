@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a .NET 8 Blazor Server application showcasing DevExpress Blazor UI components integrated with Azure OpenAI for AI-powered features. The application uses DevExpress v25.2 components with interactive server-side rendering.
+This is a .NET 8 Blazor Server application showcasing DevExpress Blazor UI components integrated with OpenAI for AI-powered features. The application uses DevExpress v25.2 components with interactive server-side rendering.
 
 ## DevExpress Documentation Access
 
@@ -20,31 +20,30 @@ This project is configured with the `dxdocs` MCP server for accessing DevExpress
 
 Build the project:
 ```bash
-dotnet build DXApplication1/DXApplication1.csproj
+dotnet build yvanGPT/yvanGpt.csproj
 ```
 
 Run the application:
 ```bash
-dotnet run --project DXApplication1/DXApplication1.csproj
+dotnet run --project yvanGPT/yvanGpt.csproj
 ```
 
 The application runs on:
 - HTTPS: https://localhost:5001
 - HTTP: http://localhost:5000
 
-## Azure OpenAI Configuration
+## OpenAI Configuration
 
-The application requires Azure OpenAI credentials configured in `appsettings.json`:
+The application requires an OpenAI API key configured in `appsettings.json`:
 
 ```json
-"AzureOpenAISettings": {
-  "Endpoint": "https://your-endpoint.openai.azure.com",
-  "Key": "your-api-key",
-  "DeploymentName": "your-deployment-name"
+"OpenAISettings": {
+  "ApiKey": "your-openai-api-key-here",
+  "Model": "gpt-4o"
 }
 ```
 
-Default configuration uses DevExpress demo credentials (rate-limited, for demonstration only). Production use requires your own Azure OpenAI credentials.
+You'll need to provide your own OpenAI API key. Get one from https://platform.openai.com/api-keys
 
 ## Architecture
 
@@ -54,9 +53,9 @@ The application uses a layered DI configuration:
 
 1. **Blazor Server Components**: Interactive server-side rendering with `AddInteractiveServerComponents()`
 2. **DevExpress Blazor**: Configured with Medium size mode
-3. **Azure OpenAI Integration**:
-   - Settings loaded from configuration (`AzureOpenAIServiceSettings`)
-   - `AzureOpenAIClient` registered as scoped `IChatClient` using Microsoft.Extensions.AI
+3. **OpenAI Integration**:
+   - Settings loaded from configuration (`OpenAIServiceSettings`)
+   - `OpenAIClient` registered as scoped `IChatClient` using Microsoft.Extensions.AI
    - DevExpress AI integration enabled via `AddDevExpressAI()`
 
 ### Drawer State Management
@@ -104,14 +103,14 @@ Components/
 
 - Custom CSS in `wwwroot/css/` (icons.css, site.css)
 - SVG icons in `wwwroot/images/`
-- Scoped CSS via `DXApplication1.styles.css`
+- Scoped CSS via `yvanGpt.styles.css`
 
 ## Key NuGet Packages
 
 - **DevExpress.Blazor** (v25.2): UI component library
 - **DevExpress.AIIntegration.Blazor** (v25.2): AI component integration
 - **DevExpress.AIIntegration.OpenAI** (v25.2): OpenAI provider for DevExpress AI
-- **Azure.AI.OpenAI** (v2.2.0-beta.5): Azure OpenAI client
+- **OpenAI** (v2.1.0): Official OpenAI .NET client
 - **Microsoft.Extensions.AI** (v9.7.1): AI abstraction layer
 - **Microsoft.Extensions.AI.OpenAI**: OpenAI implementation for Microsoft.Extensions.AI
 
