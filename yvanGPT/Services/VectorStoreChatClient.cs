@@ -57,7 +57,8 @@ public class VectorStoreChatClient : IChatClient
 
     public object? GetService(Type serviceType, object? serviceKey = null)
     {
-        return serviceType?.IsInstanceOfType(this) == true ? this : _innerClient.GetService(serviceType, serviceKey);
+        ArgumentNullException.ThrowIfNull(serviceType);
+        return serviceType.IsInstanceOfType(this) ? this : _innerClient.GetService(serviceType, serviceKey);
     }
 
     public void Dispose()
