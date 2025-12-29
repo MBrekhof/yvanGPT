@@ -2,6 +2,7 @@
 using OpenAI.Chat;
 using yvanGpt.Components;
 using yvanGpt.Services;
+using yvanGPT.Services;
 using Microsoft.Extensions.AI;
 using Microsoft.AspNetCore.Http.Features;
 
@@ -38,13 +39,33 @@ var openAiServiceSettings = builder.Configuration.GetSection("OpenAISettings").G
 if (openAiServiceSettings == null || string.IsNullOrEmpty(openAiServiceSettings.ApiKey))
     throw new InvalidOperationException("Specify the OpenAI API key in the 'appsettings.json' file.");
 
-var openAiClient = new OpenAIClient(openAiServiceSettings.ApiKey);
-var chatClient = openAiClient.GetChatClient(openAiServiceSettings.Model).AsIChatClient();
+// Register Vector Store services first (needed by VectorStoreChatClient)
+builder.Services.AddHttpClient<VectorStoreService>();
+builder.Services.AddScoped<KnowledgeBaseService>();
+builder.Services.AddScoped<AssistantChatService>();
 
-builder.Services.AddScoped<IChatClient>((provider) => chatClient);
+// Create base OpenAI chat client
+var openAiClient = new OpenAIClient(openAiServiceSettings.ApiKey);
+var baseChatClient = openAiClient.GetChatClient(openAiServiceSettings.Model).AsIChatClient();
+
+// Wrap with Vector Store decorator to automatically use knowledge base
+builder.Services.AddScoped<IChatClient>((provider) =>
+{
+    var knowledgeBaseService = provider.GetRequiredService<KnowledgeBaseService>();
+    var logger = provider.GetRequiredService<ILogger<VectorStoreChatClient>>();
+    return new VectorStoreChatClient(baseChatClient, knowledgeBaseService, logger);
+});
+
 builder.Services.AddDevExpressAI();
 
 var app = builder.Build();
+
+// Configure path base for deployment (e.g., /yvangpt/)
+var pathBase = builder.Configuration["PathBase"];
+if (!string.IsNullOrEmpty(pathBase))
+{
+    app.UsePathBase(pathBase);
+}
 
 if (!app.Environment.IsDevelopment())
 {

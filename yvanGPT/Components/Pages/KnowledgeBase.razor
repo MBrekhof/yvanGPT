@@ -1,0 +1,270 @@
+@page "/knowledge-base"
+@using yvanGPT.Services
+@inject KnowledgeBaseService KnowledgeBaseService
+@inject ILogger<KnowledgeBase> Logger
+
+<PageTitle>Knowledge Base Management</PageTitle>
+
+<PasswordProtection PageKey="knowledge-base">
+<div class="knowledge-base-container">
+    <h1>Knowledge Base Management</h1>
+    <p class="subtitle">Manage your OpenAI Vector Store for persistent document knowledge</p>
+
+    @if (isLoading)
+    {
+        <div class="loading-spinner">
+            <p>Loading...</p>
+        </div>
+    }
+    else if (knowledgeBaseInfo != null)
+    {
+        <div class="kb-info-card">
+            <h2>Current Knowledge Base</h2>
+            
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Name:</label>
+                    <span>@knowledgeBaseInfo.Name</span>
+                </div>
+                
+                <div class="info-item">
+                    <label>Vector Store ID:</label>
+                    <span class="monospace">@knowledgeBaseInfo.VectorStoreId</span>
+                </div>
+                
+                <div class="info-item">
+                    <label>Status:</label>
+                    <span class="status-badge status-@knowledgeBaseInfo.Status.ToLower()">
+                        @knowledgeBaseInfo.Status
+                    </span>
+                </div>
+                
+                <div class="info-item">
+                    <label>Total Files:</label>
+                    <span>@knowledgeBaseInfo.FileCount</span>
+                </div>
+                
+                <div class="info-item">
+                    <label>Completed:</label>
+                    <span class="text-success">@knowledgeBaseInfo.CompletedFiles</span>
+                </div>
+                
+                <div class="info-item">
+                    <label>In Progress:</label>
+                    <span class="text-warning">@knowledgeBaseInfo.InProgressFiles</span>
+                </div>
+                
+                <div class="info-item">
+                    <label>Failed:</label>
+                    <span class="text-danger">@knowledgeBaseInfo.FailedFiles</span>
+                </div>
+                
+                <div class="info-item">
+                    <label>Storage Used:</label>
+                    <span>@FormatBytes(knowledgeBaseInfo.UsageBytes)</span>
+                </div>
+                
+                <div class="info-item">
+                    <label>Created:</label>
+                    <span>@knowledgeBaseInfo.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</span>
+                </div>
+                
+                <div class="info-item">
+                    <label>Last Active:</label>
+                    <span>@(knowledgeBaseInfo.LastActiveAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A")</span>
+                </div>
+            </div>
+
+            @if (knowledgeBaseInfo.Files.Any())
+            {
+                <div class="files-section">
+                    <h3>Files in Knowledge Base</h3>
+                    <table class="files-table">
+                        <thead>
+                            <tr>
+                                <th>File ID</th>
+                                <th>Status</th>
+                                <th>Size</th>
+                                <th>Created</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var file in knowledgeBaseInfo.Files)
+                            {
+                                <tr>
+                                    <td class="monospace">@file.FileId</td>
+                                    <td>
+                                        <span class="status-badge status-@file.Status.ToLower()">
+                                            @file.Status
+                                        </span>
+                                    </td>
+                                    <td>@FormatBytes(file.UsageBytes)</td>
+                                    <td>@file.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" @onclick="RefreshInfo" disabled="@isLoading">
+                    Refresh Info
+                </button>
+                <button class="btn btn-danger" @onclick="DeleteKnowledgeBase" disabled="@isLoading">
+                    Delete Knowledge Base
+                </button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="no-kb-card">
+            <h2>No Knowledge Base Found</h2>
+            <p>Initialize a new knowledge base with the Labware PDF document.</p>
+            
+            <div class="init-section">
+                <p class="info-text">
+                    <strong>Note:</strong> Make sure the file 
+                    <code>Gebruikershandleiding-Labware-2025_v204.pdf</code> 
+                    is in the project root directory.
+                </p>
+                
+                <button class="btn btn-primary btn-large" @onclick="InitializeKnowledgeBase" disabled="@isLoading">
+                    Initialize Knowledge Base
+                </button>
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">
+            <strong>Error:</strong> @errorMessage
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success">
+            <strong>Success:</strong> @successMessage
+        </div>
+    }
+</div>
+</PasswordProtection>
+
+@code {
+    private KnowledgeBaseInfo? knowledgeBaseInfo;
+    private bool isLoading = true;
+    private string? errorMessage;
+    private string? successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadKnowledgeBaseInfo();
+    }
+
+    private async Task LoadKnowledgeBaseInfo()
+    {
+        isLoading = true;
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            knowledgeBaseInfo = await KnowledgeBaseService.GetKnowledgeBaseInfoAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading knowledge base info");
+            errorMessage = $"Failed to load knowledge base info: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task InitializeKnowledgeBase()
+    {
+        isLoading = true;
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            var pdfPath = "Gebruikershandleiding-Labware-2025_v204.pdf";
+            var vectorStoreId = await KnowledgeBaseService.InitializeKnowledgeBaseAsync(pdfPath);
+            
+            successMessage = $"Knowledge base initialized successfully! Vector Store ID: {vectorStoreId}";
+            
+            // Wait a moment for processing to start
+            await Task.Delay(2000);
+            await LoadKnowledgeBaseInfo();
+        }
+        catch (FileNotFoundException ex)
+        {
+            errorMessage = $"PDF file not found: {ex.Message}. Please ensure the file is in the project root directory.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing knowledge base");
+            errorMessage = $"Failed to initialize knowledge base: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task RefreshInfo()
+    {
+        await LoadKnowledgeBaseInfo();
+        successMessage = "Knowledge base info refreshed.";
+    }
+
+    private async Task DeleteKnowledgeBase()
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", 
+            "Are you sure you want to delete the knowledge base? This action cannot be undone."))
+        {
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            await KnowledgeBaseService.DeleteKnowledgeBaseAsync();
+            successMessage = "Knowledge base deleted successfully.";
+            knowledgeBaseInfo = null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting knowledge base");
+            errorMessage = $"Failed to delete knowledge base: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string FormatBytes(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; } = default!;
+}

@@ -1,0 +1,366 @@
+@page "/vector-store-demo"
+@using yvanGPT.Services
+@inject AssistantChatService AssistantChatService
+@inject ILogger<VectorStoreDemo> Logger
+
+<PageTitle>Vector Store Demo</PageTitle>
+
+<PasswordProtection PageKey="vector-store-demo">
+<div class="demo-container">
+    <h1>Vector Store Configuration Demo</h1>
+    <p class="subtitle">This page demonstrates that your vectorstore.config.json is being read correctly</p>
+
+    @if (isLoading)
+    {
+        <div class="loading">
+            <p>Loading configuration...</p>
+        </div>
+    }
+    else if (status != null)
+    {
+        <div class="status-card @(status.IsReady ? "status-ready" : "status-not-ready")">
+            <h2>Knowledge Base Status</h2>
+            
+            <div class="status-grid">
+                <div class="status-item">
+                    <label>Initialized:</label>
+                    <span class="badge @(status.IsInitialized ? "badge-success" : "badge-danger")">
+                        @(status.IsInitialized ? "✓ Yes" : "✗ No")
+                    </span>
+                </div>
+
+                <div class="status-item">
+                    <label>Ready for Use:</label>
+                    <span class="badge @(status.IsReady ? "badge-success" : "badge-warning")">
+                        @(status.IsReady ? "✓ Ready" : "⚠ Not Ready")
+                    </span>
+                </div>
+
+                @if (!string.IsNullOrEmpty(status.VectorStoreId))
+                {
+                    <div class="status-item full-width">
+                        <label>Vector Store ID (from vectorstore.config.json):</label>
+                        <code class="vector-store-id">@status.VectorStoreId</code>
+                    </div>
+
+                    <div class="status-item">
+                        <label>Name:</label>
+                        <span>@status.Name</span>
+                    </div>
+
+                    <div class="status-item">
+                        <label>Total Files:</label>
+                        <span>@status.TotalFiles</span>
+                    </div>
+
+                    <div class="status-item">
+                        <label>Completed Files:</label>
+                        <span class="text-success">@status.CompletedFiles</span>
+                    </div>
+
+                    <div class="status-item">
+                        <label>In Progress:</label>
+                        <span class="text-warning">@status.InProgressFiles</span>
+                    </div>
+
+                    <div class="status-item">
+                        <label>Failed Files:</label>
+                        <span class="text-danger">@status.FailedFiles</span>
+                    </div>
+                }
+
+                <div class="status-item full-width">
+                    <label>Status Message:</label>
+                    <p class="status-message">@status.Message</p>
+                </div>
+            </div>
+        </div>
+
+        @if (assistantConfig != null)
+        {
+            <div class="config-card">
+                <h2>Assistant Configuration</h2>
+                <p>This is how your Vector Store would be used with OpenAI's Assistants API:</p>
+                
+                <div class="config-details">
+                    <div class="config-item">
+                        <label>Model:</label>
+                        <span>@assistantConfig.Model</span>
+                    </div>
+                    <div class="config-item">
+                        <label>Name:</label>
+                        <span>@assistantConfig.Name</span>
+                    </div>
+                    <div class="config-item">
+                        <label>Tools:</label>
+                        <span>@string.Join(", ", assistantConfig.Tools.Select(t => t.Type))</span>
+                    </div>
+                    <div class="config-item">
+                        <label>Vector Store ID:</label>
+                        <code>@assistantConfig.VectorStoreId</code>
+                    </div>
+                </div>
+
+                <div class="json-section">
+                    <h3>JSON Configuration for OpenAI API:</h3>
+                    <pre class="json-code">@assistantConfig.ToJson()</pre>
+                </div>
+            </div>
+        }
+
+        <div class="action-section">
+            <button class="btn btn-primary" @onclick="RefreshStatus">
+                Refresh Status
+            </button>
+            <a href="/knowledge-base" class="btn btn-secondary">
+                Go to Knowledge Base Management
+            </a>
+        </div>
+    }
+</div>
+</PasswordProtection>
+
+<style>
+    .demo-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .subtitle {
+        color: #666;
+        margin-bottom: 2rem;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 3rem;
+        color: #666;
+    }
+
+    .status-card,
+    .config-card {
+        background: white;
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .status-ready {
+        border-left: 4px solid #28a745;
+    }
+
+    .status-not-ready {
+        border-left: 4px solid #ffc107;
+    }
+
+    .status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .status-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .status-item.full-width {
+        grid-column: 1 / -1;
+    }
+
+    .status-item label {
+        font-weight: 600;
+        color: #555;
+        font-size: 0.9rem;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .badge-success {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .badge-danger {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .badge-warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .vector-store-id {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 6px;
+        font-family: 'Courier New', monospace;
+        font-size: 1.1rem;
+        color: #0066cc;
+        border: 2px solid #0066cc;
+        display: block;
+        word-break: break-all;
+    }
+
+    .status-message {
+        background: #e7f3ff;
+        padding: 1rem;
+        border-radius: 6px;
+        margin: 0;
+        border-left: 4px solid #007bff;
+    }
+
+    .text-success {
+        color: #28a745;
+        font-weight: 600;
+    }
+
+    .text-warning {
+        color: #ffc107;
+        font-weight: 600;
+    }
+
+    .text-danger {
+        color: #dc3545;
+        font-weight: 600;
+    }
+
+    .config-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+
+    .config-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .config-item label {
+        font-weight: 600;
+        color: #555;
+        font-size: 0.9rem;
+    }
+
+    .config-item code {
+        background: #f8f9fa;
+        padding: 0.5rem;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+    }
+
+    .json-section {
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .json-section h3 {
+        margin-bottom: 1rem;
+        color: #333;
+    }
+
+    .json-code {
+        background: #282c34;
+        color: #abb2bf;
+        padding: 1.5rem;
+        border-radius: 6px;
+        overflow-x: auto;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+
+    .action-section {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.2s;
+    }
+
+    .btn-primary {
+        background: #007bff;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #0056b3;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #545b62;
+    }
+</style>
+
+@code {
+    private KnowledgeBaseStatus? status;
+    private AssistantConfiguration? assistantConfig;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStatus();
+    }
+
+    private async Task LoadStatus()
+    {
+        isLoading = true;
+
+        try
+        {
+            status = await AssistantChatService.GetKnowledgeBaseStatusAsync();
+            
+            if (status.IsInitialized)
+            {
+                assistantConfig = await AssistantChatService.GetAssistantConfigurationAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading status");
+            status = new KnowledgeBaseStatus
+            {
+                IsInitialized = false,
+                Message = $"Error loading status: {ex.Message}"
+            };
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task RefreshStatus()
+    {
+        await LoadStatus();
+    }
+}

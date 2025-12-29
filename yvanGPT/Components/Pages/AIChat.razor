@@ -1,31 +1,182 @@
 ﻿@page "/aichat"
+@using yvanGPT.Services
+@inject KnowledgeBaseService KnowledgeBaseService
 
-<PageTitle>AI Chat</PageTitle>
+<PageTitle>yvanGPT</PageTitle>
 
-<h1>AI Chat</h1>
+<div class="chat-page">
+    <div class="chat-header">
+        <h1>yvanGPT</h1>
+        @if (!string.IsNullOrEmpty(vectorStoreStatus))
+        {
+            <div class="vector-store-badge @vectorStoreClass">
+                <span class="badge-icon">@vectorStoreIcon</span>
+                <span class="badge-text">@vectorStoreStatus</span>
+            </div>
+        }
+        <button class="clear-chat-btn" @onclick="ClearChat" title="Clear chat history">
+            🗑️ Clear Chat
+        </button>
+    </div>
 
-@*  Demo AI services are rate limited and intended for demonstration purposes only.
-    DevExpress does not offer a REST API and does not ship any built-in LLMs/SLMs.
-    Use of demo credentials in production is strictly prohibited.
-    Specify the Azure OpenAI endpoint, key, and deployment name in the 'appsettings.json' file. *@
-<DxAIChat AllowResizeInput="true"
-          FileUploadEnabled="true"
-          Initialized="ChatInitialized"
-          UseStreaming="true"
-          CssClass="h-100 overflow-hidden">
-    <AIChatSettings>
-        <DxAIChatFileUploadSettings MaxFileCount="2"
-                                    MaxFileSize="20971520"
-                                    AllowedFileExtensions="@(new List<string> { ".jpg", ".pdf" })"
-                                    FileTypeFilter="@(new List<string> { "image/*", "application/pdf"})" />
-    </AIChatSettings>
-</DxAIChat>
+    @*  This chat automatically uses the Vector Store from vectorstore.config.json
+        Ask questions about Labware and the AI will reference the user manual! *@
+    <DxAIChat AllowResizeInput="true"
+              FileUploadEnabled="true"
+              Initialized="ChatInitialized"
+              UseStreaming="true"
+              CssClass="h-100 overflow-hidden">
+        <AIChatSettings>
+            <DxAIChatFileUploadSettings MaxFileCount="2"
+                                        MaxFileSize="20971520"
+                                        AllowedFileExtensions="@(new List<string> { ".jpg", ".pdf" })"
+                                        FileTypeFilter="@(new List<string> { "image/*", "application/pdf"})" />
+        </AIChatSettings>
+    </DxAIChat>
+</div>
+
+<style>
+    .chat-page {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+    
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding: 0 1rem;
+        }
+    
+        .chat-header h1 {
+            margin: 0;
+        }
+    
+        .clear-chat-btn {
+            margin-left: auto;
+            padding: 0.5rem 1rem;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+    
+        .clear-chat-btn:hover {
+            background: #c82333;
+        }
+    
+        .clear-chat-btn:active {
+            transform: scale(0.98);
+        }
+
+    .vector-store-badge {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .vector-store-badge.enabled {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .vector-store-badge.disabled {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+    }
+
+    .badge-icon {
+        font-size: 1.2rem;
+    }
+</style>
 
 @code {
+    private IAIChat? chatInstance;
+    private string? vectorStoreStatus;
+    private string vectorStoreClass = "";
+    private string vectorStoreIcon = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckVectorStoreStatus();
+    }
+
+    private async Task CheckVectorStoreStatus()
+    {
+        try
+        {
+            var vectorStoreId = await KnowledgeBaseService.GetCurrentVectorStoreIdAsync();
+            
+            if (!string.IsNullOrEmpty(vectorStoreId))
+            {
+                var info = await KnowledgeBaseService.GetKnowledgeBaseInfoAsync();
+                
+                if (info != null && info.CompletedFiles > 0)
+                {
+                    vectorStoreStatus = $"Labware Knowledge Base Active ({info.CompletedFiles} file(s))";
+                    vectorStoreClass = "enabled";
+                    vectorStoreIcon = "📚";
+                }
+                else
+                {
+                    vectorStoreStatus = "Knowledge Base Processing...";
+                    vectorStoreClass = "disabled";
+                    vectorStoreIcon = "⏳";
+                }
+            }
+            else
+            {
+                vectorStoreStatus = "No Knowledge Base (Standard Chat Mode)";
+                vectorStoreClass = "disabled";
+                vectorStoreIcon = "💬";
+            }
+        }
+        catch
+        {
+            vectorStoreStatus = null;
+        }
+    }
+
     void ChatInitialized(IAIChat chat) {
-        chat.LoadMessages([
+        chatInstance = chat;
+        LoadWelcomeMessages();
+    }
+
+    void LoadWelcomeMessages() {
+        if (chatInstance == null) return;
+
+        var welcomeMessage = !string.IsNullOrEmpty(vectorStoreStatus) && vectorStoreClass == "enabled"
+            ? "Hello! I have access to the Labware user manual. Ask me anything about Labware! 📚"
+            : "Hey there! What's on your mind? 😊";
+
+        chatInstance.LoadMessages([
             new BlazorChatMessage(Microsoft.Extensions.AI.ChatRole.User, "Hello, AI!"),
-            new BlazorChatMessage(Microsoft.Extensions.AI.ChatRole.Assistant, "Hey there, human! What's on your mind? 😊")
+            new BlazorChatMessage(Microsoft.Extensions.AI.ChatRole.Assistant, welcomeMessage)
         ]);
+    }
+
+    void ClearChat() {
+        if (chatInstance == null) return;
+        
+        // Clear chat by loading an empty message collection
+        chatInstance.LoadMessages([]);
+        
+        // Optionally reload welcome messages
+        LoadWelcomeMessages();
     }
 }

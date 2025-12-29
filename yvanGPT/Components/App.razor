@@ -1,12 +1,13 @@
 ﻿@using Microsoft.AspNetCore.Mvc.ViewFeatures
 @inject IFileVersionProvider FileVersionProvider
+@inject IConfiguration Configuration
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <base href="/" />
+    <base href="@GetBasePath()" />
     @DxResourceManager.RegisterTheme(ActiveTheme)
     @DxResourceManager.RegisterScripts()
     <link href=@AppendVersion("css/site.css") rel="stylesheet" />
@@ -23,6 +24,16 @@
     static readonly ITheme ActiveTheme = Themes.Fluent.Clone(properties => {
         properties.Mode = ThemeMode.Light;
     });
+
+    private string GetBasePath()
+    {
+        var pathBase = Configuration["PathBase"];
+        if (!string.IsNullOrEmpty(pathBase))
+        {
+            return pathBase.EndsWith("/") ? pathBase : pathBase + "/";
+        }
+        return "/";
+    }
 
     private string AppendVersion(string path) => FileVersionProvider.AddFileVersionToPath("/", path);
 
